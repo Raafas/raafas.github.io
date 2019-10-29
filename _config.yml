@@ -34,25 +34,24 @@ disqus:
   categories: [blog, project] # only show disqus for posts that have these categories
 
 # if you don't have any of social below, comment the line
-facebook: rafa43
 twitter: crf_rafa
 # google: mygoogle
-instagram: crf_rafa
+instagram: eusoulrafa
 # pinterest: mypinterest
 # linkedin: mylinkedin
 # youtube: myyoutube
 # spotify: myspotify
-github: eths
+github: raafas
 # lastfm: mylastfm
 # stackoverflow: 7044681/mystackoverflow
 # quora: userquora
 # reddit: username
 medium: rafaelleandro
 # vimeo: myvimeo
-email: hello@rafaelleandro.net
+email: rsousa.dev@gmail.com
 
 authors:
-    johndoe:
+    rafael:
         name: Rafael Leandro
         bio: iOS Developer
         external-image: false
