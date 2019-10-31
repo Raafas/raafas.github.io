@@ -62,5 +62,6 @@ TODO
 { Motivos para ignorar o carregamento }
 
 ## Referências
-Overview of Dynamic Libraries
-Hooking C Functions at Runtime
+[Overview of Dynamic Libraries](https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/DynamicLibraries/100-Articles/OverviewOfDynamicLibraries.html)
+
+[Hooking C Functions at Runtime](http://thomasfinch.me/blog/2015/07/24/Hooking-C-Functions-At-Runtime.html)
