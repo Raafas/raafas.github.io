@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar EPUB do Mangá</title>
+    <script src="https://cdn.jsdelivr.net/npm/epub-gen@0.3.4/dist/epub-gen.min.js"></script>
+</head>
+<body>
+    <h1>Gerar EPUB do Mangá</h1>
+    <label for="manga-name">Nome do Mangá:</label>
+    <input type="text" id="manga-name" placeholder="ex: hajime-no-ippo" />
+    <br>
+    <label for="chapter-number">Número do Capítulo:</label>
+    <input type="number" id="chapter-number" placeholder="ex: 2" />
+    <br>
+    <button onclick="generateEPUB()">Gerar EPUB</button>
+
+    <script>
+        // Função para baixar uma imagem
+        async function downloadImage(imgUrl) {
+            const response = await fetch(imgUrl);
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+        }
+
+        // Função para gerar o EPUB com as imagens
+        async function generateEPUB() {
+            const mangaName = document.getElementById('manga-name').value;
+            const chapterNumber = document.getElementById('chapter-number').value;
+            if (!mangaName || !chapterNumber) {
+                alert('Por favor, preencha o nome do mangá e o número do capítulo!');
+                return;
+            }
+
+            const url = `https://mangaonline.biz/capitulo/${mangaName}-capitulo-${chapterNumber}/`;
+
+            let images = [];
+            
+            try {
+                // Requisição para obter as imagens da página
+                const response = await fetch(url);
+                const htmlText = await response.text();
+                const docParser = new DOMParser();
+                const htmlDoc = docParser.parseFromString(htmlText, 'text/html');
+
+                // Buscar todas as imagens dentro das tags <p>
+                const imgTags = htmlDoc.querySelectorAll('p img');
+                
+                for (const imgTag of imgTags) {
+                    const imgUrl = imgTag.src;
+                    const imageBlob = await downloadImage(imgUrl);
+                    images.push(imageBlob);
+                }
+
+                // Criar um conteúdo básico para o EPUB
+                const chapters = images.map((imgBlob, index) => {
+                    return {
+                        title: `Página ${index + 1}`,
+                        data: `<img src="${imgBlob}" />`,
+                    };
+                });
+
+                // Definir o conteúdo do EPUB
+                const options = {
+                    title: `${mangaName} - Capítulo ${chapterNumber}`,
+                    author: mangaName,
+                    publisher: "Manga Online",
+                    content: chapters,
+                };
+
+                // Gerar o EPUB com a biblioteca epub-gen
+                const epub = new Epub(options);
+
+                // Salvar o EPUB
+                epub.fetch().then(function(book) {
+                    book.download(`${mangaName}_capitulo_${chapterNumber}.epub`);
+                }).catch(function(error) {
+                    console.error("Erro ao gerar o EPUB:", error);
+                });
+            } catch (error) {
+                alert('Erro ao processar as imagens ou ao acessar a página.');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
