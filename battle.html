@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>RaafasTV - Sorteio dos Subs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --accent:#60a5fa; --text:#e5e7eb;
+      --muted:#94a3b8; --win:#22c55e; --lose:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; padding:24px; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 60% -10%, #1f2937 0, #0b1225 60%, #070b16 100%);
+      color:var(--text); min-height:100vh; display:flex; flex-direction:column; gap:18px; align-items:center;
+    }
+    h1{margin:0 0 8px; font-size:clamp(22px,2.8vw,30px)}
+    .wrap{ display:grid; gap:16px; grid-template-columns: 420px minmax(760px, 940px); width:min(1200px,96vw) }
+    .card{
+      background:linear-gradient(180deg, #0d1324, #0a1020);
+      border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    textarea{
+      width:100%; height:140px; border-radius:8px; padding:10px 12px;
+      background:#0b1120; color:var(--text); border:1px solid rgba(255,255,255,0.06);
+      resize:vertical; font-family:inherit
+    }
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    input[type="number"], input[type="text"], input[type="file"]{
+      background:#0b1120; color:var(--text);
+      border:1px solid rgba(255,255,255,0.06);
+      padding:8px 10px; border-radius:8px;
+    }
+    input[type="text"]{ width:120px; }
+    input[type="range"]{width:180px}
+    button{
+      background:linear-gradient(180deg, #2563eb, #1d4ed8);
+      color:white; border:none; border-radius:10px; padding:12px 16px; font-weight:600; cursor:pointer;
+      box-shadow: 0 8px 20px rgba(37,99,235,.35);
+      transition: transform .08s ease, filter .15s ease, opacity .2s ease;
+    }
+    button:disabled{opacity:.5; cursor:not-allowed; filter:grayscale(.3)}
+    button:hover:not(:disabled){filter:brightness(1.08)}
+    button:active:not(:disabled){transform:translateY(1px)}
+    .arenaWrap{position:relative}
+    #arena{
+      display:block; width:100%; height:520px; background:
+      radial-gradient(600px 260px at 50% 30%, rgba(96,165,250,.18), transparent 70%),
+      repeating-conic-gradient(from 0deg, rgba(96,165,250,.045) 0 10deg, transparent 10deg 20deg),
+      #040813;
+      border-radius:14px; border:1px solid rgba(255,255,255,0.06);
+      box-shadow: inset 0 0 80px rgba(0,0,0,.55);
+    }
+    .hud{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; color:var(--muted); font-size:13px }
+    .badge{ padding:4px 8px; background:#0b1120; border:1px solid rgba(255,255,255,0.06); border-radius:999px }
+    #winnerBanner{ margin-top:10px; font-size:20px; font-weight:700; color:var(--win); display:none }
+    #history{ max-height:190px; overflow:auto; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px }
+    #history .item{ font-size:13px; color:#cbd5e1; padding:6px 8px; border-radius:8px;
+      background:#0b1120; border:1px solid rgba(255,255,255,0.06); margin-bottom:6px }
+    .confetti{ position:absolute; width:8px; height:10px; top:0; left:50%; opacity:0.95; pointer-events:none; will-change:transform, opacity; animation: fall linear forwards; }
+    @keyframes fall{ to{ transform:translate(var(--x), 620px) rotate(var(--r)); opacity:0.3 } }
+    .muted{color:var(--muted)} .tiny{font-size:11px}
+    .imagem-circular {
+      width: 160px; /* você pode ajustar o tamanho */
+      height: 160px;
+      border-radius: 50%; /* isso deixa a imagem redonda */
+      object-fit: cover;  /* garante que o conteúdo preencha o espaço */
+      border: 2px solid #ccc; /* opcional: uma borda para destacar */
+    }
+  </style>
+</head>
+<body>
+  <img src="https://yt3.googleusercontent.com/Y4vWP3fwTdhyCEwhfEzdoAgDmuW4GdJoIC2gZYhOR4eULNtpmR_8KhL4Gl-GPpMI8gV8SVZrfA=s160-c-k-c0x00ffffff-no-rj" class="imagem-circular"/>
+  <br/>
+  <h1>RaafasTV - Sorteio dos Subs</h1>
+  <div class="wrap">
+    <!-- PAINEL ESQUERDO -->
+    <div class="card">
+      <label for="csvInput">Importar subs (CSV — Username,Subscribe Date,Current Tier,Tenure,Streak,Sub Type,Founder)</label>
+      <textarea id="csvInput" placeholder="Cole aqui seu CSV com cabeçalho"></textarea>
+      <div class="row" style="margin-top:8px">
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+        <button id="loadCsvBtn" style="background:linear-gradient(180deg,#10b981,#059669)">Carregar CSV</button>
+        <span class="tiny muted badge">Pesos: T1/Prime=1x · T2=2x · T3=3x</span>
+      </div>
+
+      <div style="height:10px"></div>
+      <label for="names">Usernames da Twitch (um por linha)</label>
+      <textarea id="names" placeholder="Será preenchido ao importar o CSV, mas você pode editar manualmente">RaafasTV</textarea>
+
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label>Semente (vazio = aleatória)</label>
+          <input id="seedInput" type="text" placeholder="ex.: 12345" />
+        </div>
+        <div>
+          <label>Velocidade</label>
+          <input id="speed" type="range" min="0.6" max="2.2" step="0.1" value="1.2" />
+        </div>
+        <div>
+          <label>Tamanho da arena</label>
+          <input id="arenaScale" type="range" min="0.8" max="1.3" step="0.1" value="1.0" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="startBtn">Iniciar batalha</button>
+        <button id="resetBtn" style="background:linear-gradient(180deg,#374151,#1f2937)">Reset</button>
+        <button id="exportBtn" style="background:linear-gradient(180deg,#16a34a,#15803d)">Exportar histórico CSV</button>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <span class="badge tiny" id="statusBadge">Pronto</span>
+        <span class="tiny muted">Avatares via unavatar.io/twitch/&lt;username&gt; — usa iniciais se não achar.</span>
+      </div>
+
+      <div id="history"></div>
+    </div>
+
+    <!-- ARENA / CANVAS -->
+    <div class="card arenaWrap">
+      <canvas id="arena" width="900" height="520"></canvas>
+      <div class="hud">
+        <div><span class="badge">Vivos: <b id="aliveCount">0</b></span></div>
+        <div class="muted tiny">Dica: Enter/Barra de espaço para iniciar/pausar</div>
+        <div><span class="badge">Semente usada: <b id="seedUsed">—</b></span></div>
+      </div>
+      <div id="winnerBanner"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= RNG determinístico ========= */
+    function mulberry32(seed){ let a = seed>>>0; return function(){ a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296; }; }
+    function hashStringToInt(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+    const pick = (arr,rng)=> arr[(rng()*arr.length)|0];
+
+    /* ========= Seed aleatória quando vazio ========= */
+    function randomSeed32(){
+      const arr = new Uint32Array(1);
+      if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(arr);
+      else arr[0] = (Math.random() * 2**32) >>> 0;
+      return (arr[0] >>> 0);
+    }
+
+    /* ========= Elementos ========= */
+    const canvas = document.getElementById('arena'), ctx = canvas.getContext('2d');
+    const namesEl = document.getElementById('names'), startBtn=document.getElementById('startBtn');
+    const resetBtn=document.getElementById('resetBtn'), exportBtn=document.getElementById('exportBtn');
+    const speedEl=document.getElementById('speed'), scaleEl=document.getElementById('arenaScale'), seedInput=document.getElementById('seedInput');
+    const aliveCountEl=document.getElementById('aliveCount'), statusBadge=document.getElementById('statusBadge'), seedUsedEl=document.getElementById('seedUsed');
+    const winnerBanner=document.getElementById('winnerBanner'), historyEl=document.getElementById('history');
+    const csvInput=document.getElementById('csvInput'), csvFile=document.getElementById('csvFile'), loadCsvBtn=document.getElementById('loadCsvBtn');
+
+    /* ========= Estado ========= */
+    let rng=Math.random, fighters=[], running=false, rafId=null;
+    let collisionsCooldown=26, baseSpeed=parseFloat(speedEl.value), scaleFactor=parseFloat(scaleEl.value);
+    let history=[];
+    let weightsMap = {}; // username(lowercase) -> 1|2|3
+
+    /* ========= Avatar cache ========= */
+    const avatarCache = new Map(); // username -> {img, ok}
+    function loadAvatar(username){
+  username = username.trim().toLowerCase();
+  if (avatarCache.has(username)) return avatarCache.get(username);
+
+  const rec = { img: new Image(), ok: false };
+  avatarCache.set(username, rec);
+
+  const mainUrl = `https://unavatar.io/twitch/${encodeURIComponent(username)}?size=128`;
+  const fallbackUrl = `https://api.dicebear.com/7.x/identicon/png?size=128&seed=${encodeURIComponent(username)}`;
+
+  // Sem CORS, não precisamos do crossOrigin. Evita falhas de carregamento.
+  rec.img.referrerPolicy = 'no-referrer';
+
+  let triedFallback = false;
+
+  rec.img.onload = () => { rec.ok = true; };
+  rec.img.onerror = () => {
+    if (!triedFallback) {
+      // Tenta um provedor alternativo simples caso o Unavatar falhe
+      triedFallback = true;
+      const alt = new Image();
+      alt.referrerPolicy = 'no-referrer';
+      alt.onload = () => { rec.img = alt; rec.ok = true; };
+      alt.onerror = () => { rec.ok = false; };
+      alt.src = fallbackUrl;
+    } else {
+      rec.ok = false;
+    }
+  };
+
+  rec.img.src = mainUrl;
+  return rec;
+    }
+
+    /* ========= Utils ========= */
+    function initialsFromName(name){
+      const parts = name.replace(/[^a-z0-9_]/gi,' ').trim().split(/\s+/).filter(Boolean);
+      const a = parts[0]?.[0] || '?';
+      const b = parts[1]?.[0] || (parts[0]?.[1] || '');
+      return (a+b).toUpperCase();
+    }
+    function colorFromString(s){
+      let h = hashStringToInt(s) % 360;
+      return `hsl(${h} 70% 55%)`;
+    }
+    function confettiBurst(xCenter){
+      const count = 120;
+      for (let i = 0; i < count; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        const hue = (rng()*360)|0;
+        c.style.background = `hsl(${hue} 90% 60%)`;
+        const x = ((rng()*canvas.width) - canvas.width/2);
+        c.style.setProperty('--x', `${x}px`);
+        c.style.setProperty('--r', `${(rng()*1440 - 720).toFixed(1)}deg`);
+        c.style.left = (xCenter ?? canvas.width/2) + 'px';
+        c.style.animationDuration = (1.8 + rng()*1.5).toFixed(2) + 's';
+        document.querySelector('.arenaWrap').appendChild(c);
+        setTimeout(()=>c.remove(), 2000);
+      }
+    }
+    function toCSV(rows){
+      return rows.map(r => r.map(v =>
+        /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g,'""')}"` : v
+      ).join(',')).join('\n');
+    }
+
+    /* ========= CSV parsing ========= */
+    function splitCSVLine(line){
+      // divide por vírgulas fora de aspas
+      const result = [];
+      let cur = '', inQ = false;
+      for (let i=0;i<line.length;i++){
+        const ch = line[i];
+        if (ch === '"'){
+          if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (ch === ',' && !inQ){
+          result.push(cur); cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      result.push(cur);
+      return result.map(s=>s.trim());
+    }
+    function tierWeightFromFields(tierStr, subType){
+      const t = (tierStr||'').toLowerCase();
+      const s = (subType||'').toLowerCase();
+      if (t.includes('3')) return 3;
+      if (t.includes('2')) return 2;
+      // prime entra em Tier 1 (1x)
+      return 1;
+    }
+    function parseSubscribersCSV(text){
+      const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      if (!lines.length) return {};
+      const header = splitCSVLine(lines[0]);
+      const idxUser = header.findIndex(h=>/^username$/i.test(h));
+      const idxTier = header.findIndex(h=>/^current\s*tier$/i.test(h));
+      const idxType = header.findIndex(h=>/^sub\s*type$/i.test(h));
+      if (idxUser === -1) throw new Error('Cabeçalho precisa ter "Username".');
+      const map = {};
+      for (let i=1;i<lines.length;i++){
+        const cols = splitCSVLine(lines[i]);
+        const user = (cols[idxUser]||'').trim().toLowerCase();
+        if (!user) continue;
+        const tierStr = idxTier>-1 ? cols[idxTier] : '';
+        const subType = idxType>-1 ? cols[idxType] : '';
+        const w = tierWeightFromFields(tierStr, subType);
+        map[user] = Math.max(map[user]||0, w); // em caso de duplicado, mantém o maior peso
+      }
+      return map;
+    }
+
+    /* ========= Desenho do lutador ========= */
+    function drawFighterAvatar(f){
+      const size = 36;
+      const x = f.x, y = f.y;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.5)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.save();
+      ctx.clip();
+
+      const rec = loadAvatar(f.name);
+      if (rec.ok){
+        ctx.globalAlpha = f.alive ? 1 : Math.max(0, f.alpha);
+        ctx.drawImage(rec.img, x - size, y - size, size*2, size*2);
+      } else {
+        ctx.fillStyle = colorFromString(f.name);
+        ctx.fillRect(x - size, y - size, size*2, size*2);
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
+        ctx.font = 'bold 16px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(initialsFromName(f.name), x, y);
+      }
+      ctx.restore();
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = f.alive ? 'rgba(255,255,255,.9)' : 'rgba(239,68,68,.8)';
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI*2);
+      ctx.stroke();
+
+      if (f.hitTimer>0){
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x+size+6, y-6);
+        ctx.lineTo(x+size+18, y-2);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = Math.max(0.2, f.alpha);
+      ctx.fillStyle = 'rgba(203,213,225,0.92)';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(f.name + (f.chance>1?` (${f.chance}x)`:''), x, y + size + 14);
+      ctx.restore();
+    }
+
+    /* ========= Setup ========= */
+    function setup(){
+      const rawNames = namesEl.value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const unique = [...new Set(rawNames.map(n => n.toLowerCase()))];
+
+      const seedStr = seedInput.value.trim();
+      let seedInt, seedLabel;
+      if (seedStr) { seedInt = hashStringToInt(seedStr); seedLabel = seedStr; }
+      else { seedInt = randomSeed32(); seedLabel = `rand:${seedInt}`; }
+      rng = mulberry32(seedInt);
+
+      // arena
+      scaleFactor = parseFloat(scaleEl.value);
+      canvas.width = Math.round(900 * scaleFactor);
+      canvas.height = Math.round(520 * scaleFactor);
+      baseSpeed = parseFloat(speedEl.value);
+
+      // fighters (com peso por tier)
+      fighters = unique.map((name, i) => {
+        const margin = 40;
+        const chance = Math.max(1, Number(weightsMap[name] || 1));
+        return {
+          id:i, name,
+          x: margin + rng()*(canvas.width - margin*2),
+          y: margin + rng()*(canvas.height - margin*2),
+          vx: (rng()*2-1) * baseSpeed * (0.8 + rng()*0.4),
+          vy: (rng()*2-1) * baseSpeed * (0.8 + rng()*0.4),
+          alive:true, alpha:1, angle:0, cooldown:0, hitTimer:0,
+          chance
+        };
+      });
+
+      fighters.forEach(f => loadAvatar(f.name));
+
+      history = [];
+      historyEl.innerHTML = '';
+      winnerBanner.style.display = 'none';
+      aliveCountEl.textContent = fighters.length;
+      seedUsedEl.textContent = seedLabel;
+      statusBadge.textContent = 'Pronto';
+    }
+
+    /* ========= Loop ========= */
+    function update(){
+      // mover
+      for (const f of fighters){
+        if (!f.alive){ f.alpha = Math.max(0, f.alpha - 0.02); continue; }
+        f.x += f.vx; f.y += f.vy;
+        if (f.x < 40){ f.x = 40; f.vx = Math.abs(f.vx); }
+        if (f.x > canvas.width-40){ f.x = canvas.width-40; f.vx = -Math.abs(f.vx); }
+        if (f.y < 40){ f.y = 40; f.vy = Math.abs(f.vy); }
+        if (f.y > canvas.height-40){ f.y = canvas.height-40; f.vy = -Math.abs(f.vy); }
+        if (f.cooldown>0) f.cooldown--;
+        if (f.hitTimer>0) f.hitTimer--;
+      }
+
+      // colisões (vencedor ponderado pelo peso do tier)
+      const alive = fighters.filter(f=>f.alive);
+      for (let i=0;i<alive.length;i++){
+        for (let j=i+1;j<alive.length;j++){
+          const a=alive[i], b=alive[j];
+          if (a.cooldown>0 || b.cooldown>0) continue;
+          const dx=a.x-b.x, dy=a.y-b.y;
+          const dist2=dx*dx+dy*dy;
+          const R=80;
+          if (dist2 < R*R){
+            a.cooldown = b.cooldown = collisionsCooldown;
+            const wa = Math.max(1, a.chance||1);
+            const wb = Math.max(1, b.chance||1);
+            const pA = wa / (wa + wb);
+            const winner = (rng() < pA) ? a : b;
+            const loser  = (winner===a) ? b : a;
+            winner.hitTimer = 12;
+            loser.alive = false;
+
+            const stamp = new Date().toLocaleTimeString();
+            history.unshift([stamp, winner.name, loser.name]);
+            const item = document.createElement('div');
+            item.className = 'item';
+            item.textContent = `💥 ${winner.name} (${winner.chance}x) eliminou ${loser.name} (${loser.chance}x) — ${stamp}`;
+            historyEl.prepend(item);
+
+            aliveCountEl.textContent = fighters.filter(f=>f.alive).length;
+
+            if (rng() < 0.08) confettiBurst(winner.x);
+          }
+        }
+      }
+
+      // desenhar
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (const f of fighters){ drawFighterAvatar(f); }
+
+      // fim
+      const aliveNow = fighters.filter(f=>f.alive);
+      if (aliveNow.length <= 1){
+        running=false; if (rafId) cancelAnimationFrame(rafId);
+        const champ = aliveNow[0];
+        if (champ){
+          winnerBanner.textContent = `🏆 Vencedor: ${champ.name} (${champ.chance}x)`;
+          winnerBanner.style.display = 'block';
+          confettiBurst(champ.x);
+          confettiBurst(champ.x - 120);
+          confettiBurst(champ.x + 120);
+          statusBadge.textContent = 'Concluído';
+        } else {
+          winnerBanner.textContent = 'Sem vencedor (lista vazia?)';
+          winnerBanner.style.display = 'block';
+          statusBadge.textContent = 'Concluído';
+        }
+        startBtn.disabled = false;
+        return;
+      }
+
+      if (running) rafId = requestAnimationFrame(update);
+    }
+
+    /* ========= Controles ========= */
+    function start(){ if (running) return; if (!fighters.length) setup(); running=true; statusBadge.textContent='Em execução'; startBtn.disabled=true; update(); }
+    function reset(){
+      running=false; if (rafId) cancelAnimationFrame(rafId);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      document.querySelectorAll('.confetti').forEach(el=>el.remove());
+      setup(); startBtn.disabled=false;
+    }
+    function exportCSV(){
+      if (!history.length){ alert('Ainda não há histórico.'); return; }
+      const rows=[['Hora','Vencedor','Eliminado'], ...history];
+      const csv=toCSV(rows);
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='historico_batalha.csv';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // Importação CSV
+    async function handleCSVText(text){
+      try{
+        const map = parseSubscribersCSV(text);
+        if (!Object.keys(map).length){ alert('CSV vazio ou inválido.'); return; }
+        weightsMap = map;
+        namesEl.value = Object.keys(map).join('\n');
+        reset(); // reconstrói com os novos pesos
+      }catch(err){
+        console.error(err);
+        alert('Erro ao ler CSV: ' + (err?.message || err));
+      }
+    }
+    loadCsvBtn.addEventListener('click', ()=>{
+      if (csvFile.files && csvFile.files[0]){
+        const fr = new FileReader();
+        fr.onload = e => handleCSVText(String(e.target.result||'')); 
+        fr.readAsText(csvFile.files[0]);
+      } else if (csvInput.value.trim()){
+        handleCSVText(csvInput.value.trim());
+      } else {
+        alert('Selecione um arquivo CSV ou cole o conteúdo no campo.');
+      }
+    });
+
+    startBtn.addEventListener('click', ()=>{ if(!fighters.length) setup(); start(); });
+    resetBtn.addEventListener('click', reset);
+    exportBtn.addEventListener('click', exportCSV);
+    speedEl.addEventListener('input', ()=>{ baseSpeed=parseFloat(speedEl.value); for(const f of fighters){ const s = baseSpeed / Math.max(0.0001, Math.hypot(f.vx,f.vy)); f.vx*=s; f.vy*=s; }});
+    scaleEl.addEventListener('input', ()=>{
+      const runningBefore=running; running=false; if (rafId) cancelAnimationFrame(rafId);
+      setup(); if (runningBefore) start();
+    });
+    window.addEventListener('keydown', (e)=>{
+      if (e.code==='Space' || e.code==='Enter'){ e.preventDefault();
+        if (!fighters.length || winnerBanner.style.display==='block'){ reset(); return; }
+        if (!running){ start(); } else { running=false; if(rafId) cancelAnimationFrame(rafId); startBtn.disabled=false; statusBadge.textContent='Pausado'; }
+      }
+    });
+
+    // inicial
+    setup();
+  </script>
+</body>
+</html>
